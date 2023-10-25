@@ -4,7 +4,7 @@ cat <<EOF
 {
     "type": "SPEC",
     "spec": {
-        "title": "ScriptName",
+        "title": "open_gov_puller",
         "type": "object",
         "properties": {
             "attributeOne": {
