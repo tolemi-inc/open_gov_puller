@@ -1,0 +1,20 @@
+{
+  "boundingBox": [
+    -71.47237567822187, 41.772429168877856, -71.37653307818145,
+    41.861839370025955
+  ],
+  "config": {
+    "dataset": "complaints",
+    "dataset_id": 1,
+    "columns": "",
+    "history": false,
+    "login_url": "https://mountvernonny.workflow.opengov.com/",
+    "request_url": "https://api01.viewpointcloud.com/v2/mountvernonny/reports/explore"
+  },
+  "dataFilePath": "data.csv",
+  "env": {
+    "open_gov_username": "",
+    "open_gov_password": ""
+  },
+  "sourceFile": null
+}
