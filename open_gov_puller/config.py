@@ -10,7 +10,6 @@ class Config:
         additional_columns,
         login_url,
         request_url,
-        data_file_path,
         open_gov_username,
         open_gov_password,
     ):
@@ -20,7 +19,6 @@ class Config:
         self.additional_columns = additional_columns
         self.login_url = login_url
         self.request_url = request_url
-        self.data_file_path = data_file_path
         self.open_gov_username = open_gov_username
         self.open_gov_password = open_gov_password
 
@@ -111,17 +109,6 @@ class Config:
             raise ConfigError("Missing request url in config")
         else:
             self._request_url = value
-
-    @property
-    def data_file_path(self):
-        return self._data_file_path
-
-    @data_file_path.setter
-    def data_file_path(self, value):
-        if value is None:
-            raise ConfigError("Missing dataset in config")
-        else:
-            self._data_file_path = value
 
     @property
     def open_gov_username(self):

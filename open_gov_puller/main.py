@@ -49,8 +49,6 @@ def run(config):
 def load_config(file_path):
     raw_config = load_json(file_path)
 
-    data_file_path = raw_config.get("dataFilePath", None)
-
     sub_config = raw_config.get("config", {})
 
     dataset = sub_config.get("dataset", None)
@@ -70,7 +68,6 @@ def load_config(file_path):
         additional_columns,
         login_url,
         request_url,
-        data_file_path,
         open_gov_username,
         open_gov_password,
     )
