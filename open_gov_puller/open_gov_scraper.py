@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import logging
 import json
 import csv
 import requests
@@ -30,64 +31,99 @@ class OpenGovScraper:
         login_username.send_keys(self.username)
         self.driver.find_element(By.NAME, "password").send_keys(self.password)
         self.driver.find_element(By.CLASS_NAME, "auth0-lock-submit").click()
+        logging.info("Logging In")
         try:
-            inbox = wait.until(EC.presence_of_element_located((By.ID, "inbox-topbar")))
-            if inbox:
-                print("Login Successful")
-        except:
-            failure = self.driver.find_element(
-                By.CLASS_NAME, "auth0-global-message-error"
+            inbox = wait.until(
+                EC.presence_of_element_located((By.ID, "sidebar-inbox-btn"))
             )
+            if inbox:
+                logging.info("Login Successful")
+        except:
+            failure = self.driver.find_element(By.CLASS_NAME, "auth0-global-message")
             if failure:
-                print("Login Failed")
+                logging.error("Login Failed - invalid username or password")
+                raise Exception("Error logging in")
+            else:
+                raise Exception("Error logging in")
 
     def get_logs(self):
-        return self.driver.get_log("performance")
+        try:
+            return self.driver.get_log("performance")
+        except:
+            raise Exception("Error getting chrome logs")
 
     def get_api_token(self, logs):
-        for log in logs:
-            json_log = json.loads(log["message"])["message"]
+        try:
+            for log in logs:
+                json_log = json.loads(log["message"])["message"]
 
-            if (
-                "params" in json_log
-                and "headers" in json_log["params"]
-                and ":path" in json_log["params"]["headers"]
-                and "authorization" in json_log["params"]["headers"]
-                and json_log["params"]["headers"][":path"]
-                == "/v2/mountvernonny/notifications/total_unread_count"
-            ):
-                return json_log["params"]["headers"]["authorization"]
+                if (
+                    "params" in json_log
+                    and "headers" in json_log["params"]
+                    and ":path" in json_log["params"]["headers"]
+                    and "authorization" in json_log["params"]["headers"]
+                    and json_log["params"]["headers"][":path"]
+                    == "/v2/mountvernonny/notifications/total_unread_count"
+                ):
+                    token = json_log["params"]["headers"]["authorization"]
+                    logging.info("Found api token")
+                    return token
+
+            logging.error("Unable to find api token in chrome logs")
+
+        except:
+            raise Exception("Error getting api token")
 
     def quit_driver(self):
-        print("Quitting Selenium WebDriver")
+        logging.info("Quitting Selenium WebDriver")
         self.driver.quit()
 
-    def request_data(self, url, token, report, headers, payload):
-        payload["recordTypeID"] = report["record_type_id"]
-        # payload["columns"] = report["columns"]
+    def request_data(self, url, token, dataset_id, columns, headers, payload):
+        payload["recordTypeID"] = dataset_id
+        payload["columns"] = columns
         updated_payload = json.dumps(payload)
 
         headers["authorization"] = token
 
-        response = requests.request("POST", url, headers=headers, data=updated_payload)
+        try:
+            response = requests.request(
+                "POST", url, headers=headers, data=updated_payload
+            )
 
-        print(response)
-        response_data = response.json()["data"]
+            logging.info(
+                "Response: " + str(response.status_code) + ", " + response.reason
+            )
 
-        return response_data
+            if response.status_code == 200:
+                return response.json()["data"]
+
+            else:
+                logging.error("Api request returned a non-200 response")
+                raise Exception("Error making api request")
+
+        except:
+            raise Exception("Error making api request")
 
     def create_csv(self, data, path):
-        with open(f"data/{path}", "w", newline="") as csvfile:
-            fieldnames = data[0].keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        try:
+            with open(f"open_gov_puller/data/{path}", "w", newline="") as csvfile:
+                fieldnames = data[0].keys()
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-            writer.writeheader()
+                writer.writeheader()
 
-            for record in data:
-                writer.writerow(record)
+                for record in data:
+                    writer.writerow(record)
 
-    def generate_reports(self, token, url, reports, headers, payload):
-        for report in reports:
-            csv_file_path = report["name"] + ".csv"
-            response_data = self.request_data(url, token, report, headers, payload)
-            self.create_csv(response_data, csv_file_path)
+                logging.info("Successfully created csv file")
+        except:
+            raise Exception("Error writing to csv file")
+
+    def generate_report(
+        self, token, url, dataset, dataset_id, columns, headers, payload
+    ):
+        csv_file_path = dataset + ".csv"
+        response_data = self.request_data(
+            url, token, dataset_id, columns, headers, payload
+        )
+        self.create_csv(response_data, csv_file_path)
