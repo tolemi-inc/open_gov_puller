@@ -16,9 +16,11 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 def run(config):
+    url = f"https://{config.citystate}.workflow.opengov.com/"
+
     openGovScraper = OpenGovScraper(config.open_gov_username, config.open_gov_password)
 
-    openGovScraper.login(config.login_url)
+    openGovScraper.login(url)
 
     logs = openGovScraper.get_logs()
 
@@ -27,20 +29,20 @@ def run(config):
     openGovScraper.quit_driver()
 
     category_id = openGovScraper.get_category_id(
-        config.login_url,
+        url,
         token,
         config.category,
     )
 
     report_payload = openGovScraper.get_report_payload(
-        config.login_url,
+        url,
         token,
         category_id,
         config.dataset,
     )
 
     openGovScraper.generate_report(
-        config.request_url,
+        f"https://api01.viewpointcloud.com/v2/{config.citystate}/reports/explore",
         token,
         config.dataset,
         report_payload,
@@ -54,8 +56,7 @@ def load_config(file_path):
 
     category = sub_config.get("category", None)
     dataset = sub_config.get("dataset", None)
-    login_url = sub_config.get("login_url", None)
-    request_url = sub_config.get("request_url", None)
+    citystate = sub_config.get("citystate", None)
 
     open_gov_username = raw_config.get("env", None).get("open_gov_username", None)
     open_gov_password = raw_config.get("env", None).get("open_gov_password", None)
@@ -63,8 +64,7 @@ def load_config(file_path):
     return Config(
         category,
         dataset,
-        login_url,
-        request_url,
+        citystate,
         open_gov_username,
         open_gov_password,
     )

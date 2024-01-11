@@ -6,21 +6,19 @@ class Config:
         self,
         category,
         dataset,
-        login_url,
-        request_url,
+        citystate,
         open_gov_username,
         open_gov_password,
     ):
         self.category = category
         self.dataset = dataset
-        self.login_url = login_url
-        self.request_url = request_url
+        self.citystate = citystate
         self.open_gov_username = open_gov_username
         self.open_gov_password = open_gov_password
 
     @property
     def category(self):
-        return self._dataset
+        return self._category
 
     @category.setter
     def category(self, value):
@@ -53,26 +51,21 @@ class Config:
             )
 
     @property
-    def login_url(self):
-        return self._login_url
+    def citystate(self):
+        return self._citystate
 
-    @login_url.setter
-    def login_url(self, value):
-        if value is None:
-            raise ConfigError("Missing login url in config")
+    @citystate.setter
+    def citystate(self, value):
+        if isinstance(value, str):
+            self._citystate = value
+        elif value is None:
+            raise ConfigError("Missing citystate in config")
         else:
-            self._login_url = value
-
-    @property
-    def request_url(self):
-        return self._request_url
-
-    @request_url.setter
-    def request_url(self, value):
-        if value is None:
-            raise ConfigError("Missing request url in config")
-        else:
-            self._request_url = value
+            raise ConfigError(
+                "Expecting citystate to be a string value. Received: {} Fix config.".format(
+                    value
+                )
+            )
 
     @property
     def open_gov_username(self):
