@@ -4,23 +4,36 @@ from config_error import ConfigError
 class Config:
     def __init__(
         self,
+        category,
         dataset,
-        dataset_id,
-        base_columns,
-        additional_columns,
         login_url,
         request_url,
         open_gov_username,
         open_gov_password,
     ):
+        self.category = category
         self.dataset = dataset
-        self.dataset_id = dataset_id
-        self.base_columns = base_columns
-        self.additional_columns = additional_columns
         self.login_url = login_url
         self.request_url = request_url
         self.open_gov_username = open_gov_username
         self.open_gov_password = open_gov_password
+
+    @property
+    def category(self):
+        return self._dataset
+
+    @category.setter
+    def category(self, value):
+        if isinstance(value, str):
+            self._category = value
+        elif value is None:
+            raise ConfigError("Missing category in config")
+        else:
+            raise ConfigError(
+                "Expecting category to be a string value. Received: {} Fix config.".format(
+                    value
+                )
+            )
 
     @property
     def dataset(self):
@@ -28,65 +41,16 @@ class Config:
 
     @dataset.setter
     def dataset(self, value):
-        allowed_values = [
-            "complaints",
-            "building_permits",
-            "demolition_permits",
-            "electrical_permits",
-            "equipment_permits",
-            "plumbing_permits",
-            "sign_permits",
-        ]
-
-        if value is None:
-            raise ConfigError("Missing dataset in config")
-        elif value in allowed_values:
+        if isinstance(value, str):
             self._dataset = value
-        else:
-            raise ConfigError(
-                "Invalid dataset: {}. Expecting one of {}".format(
-                    value, ", ".join(allowed_values)
-                )
-            )
-
-    @property
-    def dataset_id(self):
-        return self._dataset_id
-
-    @dataset_id.setter
-    def dataset_id(self, value):
-        if isinstance(value, int):
-            self._dataset_id = value
         elif value is None:
-            raise ConfigError("Missing dataset id in config")
+            raise ConfigError("Missing dataset in config")
         else:
             raise ConfigError(
-                "Expecting dataset id to be an integer value. Received: {} Fix config.".format(
+                "Expecting dataset to be a string value. Received: {} Fix config.".format(
                     value
                 )
             )
-
-    @property
-    def base_columns(self):
-        return self._base_columns
-
-    @base_columns.setter
-    def base_columns(self, value):
-        if value is None:
-            raise ConfigError("Missing base columns in config")
-        else:
-            self._base_columns = value
-
-    @property
-    def additional_columns(self):
-        return self._additional_columns
-
-    @additional_columns.setter
-    def additional_columns(self, value):
-        if value is None:
-            raise ConfigError("Missing additional columns in config")
-        else:
-            self._additional_columns = value
 
     @property
     def login_url(self):

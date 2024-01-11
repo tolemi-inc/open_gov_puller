@@ -26,23 +26,33 @@ def run(config):
 
     openGovScraper.quit_driver()
 
-    with open("api_json/reports.json", "r") as json_file:
-        reports = json.load(json_file)
-
     with open("api_json/headers.json", "r") as json_file:
         headers = json.load(json_file)
 
-    with open("api_json/payload.json", "r") as json_file:
-        payload = json.load(json_file)
+    with open("api_json/headers2.json", "r") as json_file:
+        headers2 = json.load(json_file)
+
+    category_id = openGovScraper.get_category_id(
+        config.login_url,
+        token,
+        headers2,
+        config.category,
+    )
+
+    report_payload = openGovScraper.get_report_payload(
+        config.login_url,
+        token,
+        headers2,
+        category_id,
+        config.dataset,
+    )
 
     openGovScraper.generate_report(
-        token,
         config.request_url,
+        token,
         config.dataset,
-        config.dataset_id,
-        config.base_columns + config.additional_columns,
         headers,
-        payload,
+        report_payload,
     )
 
 
@@ -51,10 +61,8 @@ def load_config(file_path):
 
     sub_config = raw_config.get("config", {})
 
+    category = sub_config.get("category", None)
     dataset = sub_config.get("dataset", None)
-    dataset_id = sub_config.get("dataset_id", None)
-    base_columns = sub_config.get("base_columns", None)
-    additional_columns = sub_config.get("additional_columns", None)
     login_url = sub_config.get("login_url", None)
     request_url = sub_config.get("request_url", None)
 
@@ -62,10 +70,8 @@ def load_config(file_path):
     open_gov_password = raw_config.get("env", None).get("open_gov_password", None)
 
     return Config(
+        category,
         dataset,
-        dataset_id,
-        base_columns,
-        additional_columns,
         login_url,
         request_url,
         open_gov_username,

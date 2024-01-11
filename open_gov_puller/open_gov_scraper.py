@@ -78,16 +78,55 @@ class OpenGovScraper:
         logging.info("Quitting Selenium WebDriver")
         self.driver.quit()
 
-    def request_data(self, url, token, dataset_id, columns, headers, payload):
-        payload["recordTypeID"] = dataset_id
-        payload["columns"] = columns
-        updated_payload = json.dumps(payload)
+    def get_category_id(self, url, token, headers, category_name):
+        full_url = f"{url}/categories"
+        headers["authorization"] = token
+        response = requests.request("GET", full_url, headers=headers)
 
+        category_id = next(
+            (
+                category["id"]
+                for category in response.json()["categories"]
+                if category["name"].strip() == category_name
+            ),
+            None,
+        )
+
+        return category_id
+
+    def get_report_payload(self, url, token, headers, category_id, report_name):
+        full_url = f"{url}/reports?categoryID={category_id}"
+        headers["authorization"] = token
+        response = requests.request("GET", full_url, headers=headers)
+
+        matching_report = next(
+            (
+                report
+                for report in response.json()["reports"]
+                if report["name"] == report_name
+                and report["createdByUserID"] == "auth0|652009d2a02a8ba6ec8cd878"
+            ),
+            None,
+        )
+
+        payload = {}
+        if matching_report:
+            payload["categoryID"] = category_id
+            payload["recordTypeId"] = matching_report["recordTypeID"]
+            payload["filters"] = "[]"
+            payload["columns"] = matching_report["columns"]
+            payload["reportType"] = 1
+            payload["pageNumber"] = 0
+            payload["fetchNumber"] = 50
+
+        return payload
+
+    def request_data(self, url, token, headers, payload):
         headers["authorization"] = token
 
         try:
             response = requests.request(
-                "POST", url, headers=headers, data=updated_payload
+                "POST", url, headers=headers, data=json.dumps(payload)
             )
 
             logging.info(
@@ -119,11 +158,7 @@ class OpenGovScraper:
         except:
             raise Exception("Error writing to csv file")
 
-    def generate_report(
-        self, token, url, dataset, dataset_id, columns, headers, payload
-    ):
-        csv_file_path = dataset + ".csv"
-        response_data = self.request_data(
-            url, token, dataset_id, columns, headers, payload
-        )
+    def generate_report(self, url, token, dataset, headers, payload):
+        csv_file_path = dataset.lower().replace(" ", "_") + ".csv"
+        response_data = self.request_data(url, token, headers, payload)
         self.create_csv(response_data, csv_file_path)
