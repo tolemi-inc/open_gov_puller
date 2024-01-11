@@ -26,23 +26,15 @@ def run(config):
 
     openGovScraper.quit_driver()
 
-    with open("api_json/headers.json", "r") as json_file:
-        headers = json.load(json_file)
-
-    with open("api_json/headers2.json", "r") as json_file:
-        headers2 = json.load(json_file)
-
     category_id = openGovScraper.get_category_id(
         config.login_url,
         token,
-        headers2,
         config.category,
     )
 
     report_payload = openGovScraper.get_report_payload(
         config.login_url,
         token,
-        headers2,
         category_id,
         config.dataset,
     )
@@ -51,7 +43,6 @@ def run(config):
         config.request_url,
         token,
         config.dataset,
-        headers,
         report_payload,
     )
 

@@ -78,9 +78,9 @@ class OpenGovScraper:
         logging.info("Quitting Selenium WebDriver")
         self.driver.quit()
 
-    def get_category_id(self, url, token, headers, category_name):
+    def get_category_id(self, url, token, category_name):
         full_url = f"{url}/categories"
-        headers["authorization"] = token
+        headers = {"authorization": token, "subdomain": "mountvernonny"}
         response = requests.request("GET", full_url, headers=headers)
 
         category_id = next(
@@ -94,9 +94,9 @@ class OpenGovScraper:
 
         return category_id
 
-    def get_report_payload(self, url, token, headers, category_id, report_name):
+    def get_report_payload(self, url, token, category_id, report_name):
         full_url = f"{url}/reports?categoryID={category_id}"
-        headers["authorization"] = token
+        headers = {"authorization": token, "subdomain": "mountvernonny"}
         response = requests.request("GET", full_url, headers=headers)
 
         matching_report = next(
@@ -121,8 +121,8 @@ class OpenGovScraper:
 
         return payload
 
-    def request_data(self, url, token, headers, payload):
-        headers["authorization"] = token
+    def request_data(self, url, token, payload):
+        headers = {"authorization": token, "content-type": "application/vnd.api+json"}
 
         try:
             response = requests.request(
@@ -158,7 +158,7 @@ class OpenGovScraper:
         except:
             raise Exception("Error writing to csv file")
 
-    def generate_report(self, url, token, dataset, headers, payload):
+    def generate_report(self, url, token, dataset, payload):
         csv_file_path = dataset.lower().replace(" ", "_") + ".csv"
-        response_data = self.request_data(url, token, headers, payload)
+        response_data = self.request_data(url, token, payload)
         self.create_csv(response_data, csv_file_path)
