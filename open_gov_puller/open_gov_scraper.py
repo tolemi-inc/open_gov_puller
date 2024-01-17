@@ -78,10 +78,37 @@ class OpenGovScraper:
         logging.info("Quitting Selenium WebDriver")
         self.driver.quit()
 
+    def make_api_call(self, method, url, headers, payload=None):
+        try:
+            if payload:
+                response = requests.request(
+                    method, url, headers=headers, data=json.dumps(payload)
+                )
+            else:
+                response = requests.request(method, url, headers=headers)
+
+            logging.info(
+                "Response: " + str(response.status_code) + ", " + response.reason
+            )
+
+            if response.status_code == 200:
+                return response
+
+            else:
+                logging.error("Api request returned a non-200 response")
+                raise Exception("Error making api request")
+
+        except:
+            raise Exception("Error making api request")
+
     def get_category_id(self, url, token, category_name):
         full_url = f"{url}/categories"
         headers = {"authorization": token, "subdomain": "mountvernonny"}
-        response = requests.request("GET", full_url, headers=headers)
+
+        response = self.make_api_call("GET", full_url, headers)
+        logging.info(
+            f"Successfully found id for category named {category_name} from OpenGov"
+        )
 
         category_id = next(
             (
@@ -97,7 +124,11 @@ class OpenGovScraper:
     def get_report_payload(self, url, token, category_id, report_name):
         full_url = f"{url}/reports?categoryID={category_id}"
         headers = {"authorization": token, "subdomain": "mountvernonny"}
-        response = requests.request("GET", full_url, headers=headers)
+
+        response = self.make_api_call("GET", full_url, headers)
+        logging.info(
+            f"Successfully found report metadata for category with id {category_id} from OpenGov"
+        )
 
         matching_report = next(
             (
@@ -118,30 +149,19 @@ class OpenGovScraper:
             payload["reportType"] = 1
             payload["pageNumber"] = 0
             payload["fetchNumber"] = 50
+        else:
+            logging.info(f"No report named {report_name} found")
 
         return payload
 
     def request_data(self, url, token, payload):
         headers = {"authorization": token, "content-type": "application/vnd.api+json"}
+        response = self.make_api_call("POST", url, headers, payload)
+        logging.info(
+            f"Successfully retrieved data for report with id {payload['recordTypeId']} from OpenGov"
+        )
 
-        try:
-            response = requests.request(
-                "POST", url, headers=headers, data=json.dumps(payload)
-            )
-
-            logging.info(
-                "Response: " + str(response.status_code) + ", " + response.reason
-            )
-
-            if response.status_code == 200:
-                return response.json()["data"]
-
-            else:
-                logging.error("Api request returned a non-200 response")
-                raise Exception("Error making api request")
-
-        except:
-            raise Exception("Error making api request")
+        return response.json()["data"]
 
     def create_csv(self, data, path):
         try:
