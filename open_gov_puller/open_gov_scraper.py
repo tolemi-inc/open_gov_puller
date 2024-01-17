@@ -175,10 +175,16 @@ class OpenGovScraper:
                     writer.writerow(record)
 
                 logging.info("Successfully created csv file")
+
+                return fieldnames
         except:
             raise Exception("Error writing to csv file")
 
     def generate_report(self, url, token, dataset, payload):
         csv_file_path = dataset.lower().replace(" ", "_") + ".csv"
         response_data = self.request_data(url, token, payload)
-        self.create_csv(response_data, csv_file_path)
+        headers = self.create_csv(response_data, csv_file_path)
+
+        headers_dict = [{"name": header, "type": "VARCHAR"} for header in headers]
+
+        return headers_dict

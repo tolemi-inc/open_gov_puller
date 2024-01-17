@@ -41,12 +41,20 @@ def run(config):
         config.dataset,
     )
 
-    openGovScraper.generate_report(
+    headers_dict = openGovScraper.generate_report(
         f"https://api01.viewpointcloud.com/v2/{config.citystate}/reports/explore",
         token,
         config.dataset,
         report_payload,
     )
+
+    output_object = {
+        "status": "ok",
+        "file_name": f"open_gov_puller/data/{config.dataset.lower().replace(' ', '_')}.csv",
+        "columns": headers_dict,
+    }
+
+    print("DONE", json.dumps(output_object))
 
 
 def load_config(file_path):
