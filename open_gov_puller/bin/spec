@@ -8,18 +8,18 @@ cat <<EOF
         "type": "object",
         "properties": {
             "Category": {
-                "type": "string",
+                "type": "string"
             },
             "Dataset": {
-                "type": "string",
+                "type": "string"
             },
             "City/state": {
-                "type": "string",
+                "type": "string"
             },
             "login_name": {
                 "type": "secret"
             },
-            "password":{
+            "password": {
                 "type": "secret"
             }    
         }
