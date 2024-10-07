@@ -7,21 +7,21 @@ cat <<EOF
         "title": "open_gov_puller",
         "type": "object",
         "properties": {
-            "Category": {
-                "type": "string",
+            "category": {
+                "type": "string"
             },
-            "Dataset": {
-                "type": "string",
+            "dataset": {
+                "type": "string"
             },
-            "City/state": {
-                "type": "string",
+            "citystate": {
+                "type": "string"
             },
-            "login_name": {
+            "open_gov_username": {
                 "type": "secret"
             },
-            "password":{
+            "open_gov_password": {
                 "type": "secret"
-            }    
+            }
         }
     }
 }
