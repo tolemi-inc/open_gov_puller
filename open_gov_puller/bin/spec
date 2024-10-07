@@ -7,6 +7,7 @@ cat <<EOF
         "title": "open_gov_puller",
         "type": "object",
         "properties": {
+<<<<<<< HEAD
             "category": {
                 "type": "string"
             },
@@ -14,12 +15,25 @@ cat <<EOF
                 "type": "string"
             },
             "citystate": {
+=======
+            "Category": {
+                "type": "string"
+            },
+            "Dataset": {
+                "type": "string"
+            },
+            "City/state": {
+>>>>>>> e87bc1c9c870ee43ef7fc4d8a68ebb003155d528
                 "type": "string"
             },
             "open_gov_username": {
                 "type": "secret"
             },
+<<<<<<< HEAD
             "open_gov_password": {
+=======
+            "password": {
+>>>>>>> e87bc1c9c870ee43ef7fc4d8a68ebb003155d528
                 "type": "secret"
             }
         }
