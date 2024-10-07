@@ -7,29 +7,21 @@ cat <<EOF
         "title": "open_gov_puller",
         "type": "object",
         "properties": {
-            "attributeOne": {
-                "type": "dictionary",
-                "custom": {
-                    "options": [
-                        {
-                            "label": "OptionOne",
-                            "value": "option_one"
-                        },
-                        {
-                            "label": "OptionTwo",
-                            "value": "option_two"
-                        },
-                        {
-                            "label": "OptionThree",
-                            "value": "option_three"
-                        }
-                    ]
-                }
+            "Category": {
+                "type": "string",
             },
-            "attributeTwo": {
-                "type": "boolean",
-                "defaultValue": "false"
-            }
+            "Dataset": {
+                "type": "string",
+            },
+            "City/state": {
+                "type": "string",
+            },
+            "login_name": {
+                "type": "secret"
+            },
+            "password":{
+                "type": "secret"
+            }    
         }
     }
 }

@@ -1,11 +1,13 @@
-#CONTAINER TEMPLATE
-FROM python:3.9-slim-bookworm
+FROM python:3.12-bookworm
 
 RUN echo $PATH
 
 WORKDIR /opt/open_gov_puller
+    
+# install requirements
+RUN pip install playwright
+RUN playwright install --with-deps
 
-#install requirements
 COPY requirements.txt /opt/open_gov_puller
 RUN pip install -r requirements.txt
 

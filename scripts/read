@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-podman run --rm -q -i -v "$PWD":"/tmp/puller" -w /tmp/puller localhost/open_gov_puller:latest read --config config.json
+# podman run --rm -q -i -v "$PWD":"/tmp/puller" -w /tmp/puller localhost/open_gov_puller:latest read --config config.json
+podman run --rm -q -i -v "$PWD":"/tmp/puller" -w /tmp/puller localhost/open_gov_puller:latest /tmp/puller/open_gov_puller/bin/read --config config.json

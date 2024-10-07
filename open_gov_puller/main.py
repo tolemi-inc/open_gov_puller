@@ -13,44 +13,40 @@ parser.add_argument("--config", type=str, help="Path to config file")
 args = parser.parse_args()
 
 logging.getLogger().setLevel(logging.INFO)
-
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s', 
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 def run(config):
-    url = f"https://{config.citystate}.workflow.opengov.com/"
+    url = f"https://{config.citystate}.workflow.opengov.com"
 
-    openGovScraper = OpenGovScraper(config.open_gov_username, config.open_gov_password)
+    openGovScraper = OpenGovScraper(config.open_gov_username, config.open_gov_password, config.citystate)
 
-    openGovScraper.login(url)
-
-    logs = openGovScraper.get_logs()
-
-    token = openGovScraper.get_api_token(logs)
-
+    openGovScraper.open_opengov(url)
+    openGovScraper.login()
     openGovScraper.quit_driver()
 
     category_id = openGovScraper.get_category_id(
         url,
-        token,
         config.category,
     )
 
     report_payload = openGovScraper.get_report_payload(
         url,
-        token,
         category_id,
         config.dataset,
     )
 
     headers_dict = openGovScraper.generate_report(
-        f"https://api01.viewpointcloud.com/v2/{config.citystate}/reports/explore",
-        token,
-        config.dataset,
+        f"https://api-east.viewpointcloud.com/v2/{config.citystate}/reports/explore",
         report_payload,
+        config.data_file_path
     )
 
     output_object = {
         "status": "ok",
-        "file_name": f"open_gov_puller/data/{config.dataset.lower().replace(' ', '_')}.csv",
+        "file_name": config.data_file_path,
         "columns": headers_dict,
     }
 
@@ -60,23 +56,23 @@ def run(config):
 def load_config(file_path):
     raw_config = load_json(file_path)
 
-    sub_config = raw_config.get("config", {})
+    data_file_path = raw_config.get('dataFilePath', None)
 
+    sub_config = raw_config.get("config", {})
     category = sub_config.get("category", None)
     dataset = sub_config.get("dataset", None)
     citystate = sub_config.get("citystate", None)
-
-    open_gov_username = raw_config.get("env", None).get("open_gov_username", None)
-    open_gov_password = raw_config.get("env", None).get("open_gov_password", None)
+    username = sub_config.get("open_gov_username", None)
+    password = sub_config.get("open_gov_password", None)
 
     return Config(
+        data_file_path,
         category,
         dataset,
         citystate,
-        open_gov_username,
-        open_gov_password,
+        username,
+        password,
     )
-
 
 def load_json(file_path):
     try:

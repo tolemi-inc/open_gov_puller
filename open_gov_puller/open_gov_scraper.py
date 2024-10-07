@@ -1,82 +1,70 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.sync_api import sync_playwright
 import logging
 import json
 import csv
 import requests
-
+import time
 
 class OpenGovScraper:
-    def __init__(self, username, password):
+    def __init__(self, username, password, city_state):
         self.username = username
         self.password = password
+        self.city_state = city_state
+        self.api_token = None
 
-        options = webdriver.ChromeOptions()
-        options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-        options.add_argument("headless")
-        options.add_argument("--ignore-certificate-errors")
-        service = webdriver.ChromeService(executable_path="chromedriver.exe")
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(headless=True,
+            args=['--no-zygote'])
+        self.page = self.browser.new_page()
+    
+    def open_opengov(self, url):
+        self.page.on("response", lambda response: self.extract_api_token(response))
+        self.page.goto(url)
+        logging.info(f"Navigating to {url}")
 
-        self.driver = webdriver.Chrome(
-            service=service,
-            options=options,
-        )
-
-    def login(self, url):
-        self.driver.get(url)
-        wait = WebDriverWait(self.driver, 30)
-        login_username = wait.until(EC.element_to_be_clickable((By.NAME, "email")))
-        login_username.send_keys(self.username)
-        self.driver.find_element(By.NAME, "password").send_keys(self.password)
-        self.driver.find_element(By.CLASS_NAME, "auth0-lock-submit").click()
-        logging.info("Logging In")
+    def login(self):
+        # self.retry_wait_for_selector("input[name='email']")
+        logging.info("Looking for email element")
+        self.page.wait_for_selector("input[name='email']", timeout=100000)
+        logging.info("Found email element")
+        self.page.locator("input[name='email']").fill(self.username)
+        self.page.locator("input[name='password']").fill(self.password)
+        self.page.locator("xpath=//button[@type='submit']").click()
+        logging.info("Logging in")
         try:
-            inbox = wait.until(
-                EC.presence_of_element_located((By.ID, "sidebar-inbox-btn"))
-            )
+            inbox = self.page.wait_for_selector('#openGovLogo', timeout=100000)
             if inbox:
                 logging.info("Login Successful")
-        except:
-            failure = self.driver.find_element(By.CLASS_NAME, "auth0-global-message")
+            if self.api_token is None:
+                raise Exception("Could not find API Token")
+        except: 
+            failure = self.page.wait_for_selector('.auth0-global-message', timeout=100000)
             if failure:
                 logging.error("Login Failed - invalid username or password")
                 raise Exception("Error logging in")
             else:
                 raise Exception("Error logging in")
-
-    def get_logs(self):
-        try:
-            return self.driver.get_log("performance")
-        except:
-            raise Exception("Error getting chrome logs")
-
-    def get_api_token(self, logs):
-        try:
-            for log in logs:
-                json_log = json.loads(log["message"])["message"]
-
-                if (
-                    "params" in json_log
-                    and "headers" in json_log["params"]
-                    and ":path" in json_log["params"]["headers"]
-                    and "authorization" in json_log["params"]["headers"]
-                    and json_log["params"]["headers"][":path"]
-                    == "/v2/mountvernonny/notifications/total_unread_count"
-                ):
-                    token = json_log["params"]["headers"]["authorization"]
-                    logging.info("Found api token")
-                    return token
-
-            logging.error("Unable to find api token in chrome logs")
-
-        except:
-            raise Exception("Error getting api token")
+            
+    def retry_wait_for_selector(self, selector, timeout=100000, retries=3):
+        attempt = 0
+        while attempt < retries:
+            try:
+                return self.page.wait_for_selector(selector, timeout=timeout)
+            except:
+                logging.warning(f"Retrying to find {selector} - Attempt {attempt + 1}")
+                attempt += 1
+                time.sleep(2)
+        raise Exception(f"Failed to find {selector} after {retries} attempts")
+    
+    def extract_api_token(self, response):
+        if response.url == 'https://accounts.viewpointcloud.com/oauth/token':
+            logging.info('API Token Found')
+            self.api_token = response.json().get('access_token')
 
     def quit_driver(self):
-        logging.info("Quitting Selenium WebDriver")
-        self.driver.quit()
+        logging.info("Quitting Playwright Browser")
+        self.browser.close()
+        self.playwright.stop()
 
     def make_api_call(self, method, url, headers, payload=None):
         try:
@@ -101,9 +89,9 @@ class OpenGovScraper:
         except:
             raise Exception("Error making api request")
 
-    def get_category_id(self, url, token, category_name):
+    def get_category_id(self, url, category_name):
         full_url = f"{url}/categories"
-        headers = {"authorization": token, "subdomain": "mountvernonny"}
+        headers = {"authorization": f"Bearer {self.api_token}", "subdomain": self.city_state}
 
         response = self.make_api_call("GET", full_url, headers)
         logging.info(
@@ -121,9 +109,9 @@ class OpenGovScraper:
 
         return category_id
 
-    def get_report_payload(self, url, token, category_id, report_name):
+    def get_report_payload(self, url, category_id, report_name):
         full_url = f"{url}/reports?categoryID={category_id}"
-        headers = {"authorization": token, "subdomain": "mountvernonny"}
+        headers = {"authorization": f"Bearer {self.api_token}", "subdomain": self.city_state}
 
         response = self.make_api_call("GET", full_url, headers)
         logging.info(
@@ -135,41 +123,40 @@ class OpenGovScraper:
                 report
                 for report in response.json()["reports"]
                 if report["name"] == report_name
-                and report["createdByUserID"] == "auth0|652009d2a02a8ba6ec8cd878"
+                # and report["createdByUserID"] == "auth0|652009d2a02a8ba6ec8cd878"
             ),
             None,
         )
-
+        
         payload = {}
         if matching_report:
             payload["categoryID"] = category_id
-            payload["recordTypeId"] = matching_report["recordTypeID"]
+            payload["recordTypeID"] = matching_report["recordTypeID"]
             payload["filters"] = "[]"
             payload["columns"] = matching_report["columns"]
-            payload["reportType"] = 1
+            payload["reportType"] = matching_report["reportScopeID"]
             payload["pageNumber"] = 0
             payload["fetchNumber"] = 50
+            logging.info(f"Successfully found report metadata for report named {report_name}")
         else:
             logging.info(f"No report named {report_name} found")
 
         return payload
 
-    def request_data(self, url, token, payload):
-        headers = {"authorization": token, "content-type": "application/vnd.api+json"}
+    def request_data(self, url, payload):
+        headers = {"authorization": f"Bearer {self.api_token}", "content-type": "application/vnd.api+json"}
         response = self.make_api_call("POST", url, headers, payload)
         logging.info(
-            f"Successfully retrieved data for report with id {payload['recordTypeId']} from OpenGov"
+            f"Successfully retrieved data for report with id {payload['recordTypeID']} from OpenGov"
         )
 
         return response.json()["data"]
 
     def create_csv(self, data, path):
         try:
-            with open(f"open_gov_puller/data/{path}", "w", newline="") as csvfile:
+            with open(f"open_gov_puller/{path}", "w", newline="") as csvfile:
                 fieldnames = data[0].keys()
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-                writer.writeheader()
 
                 for record in data:
                     writer.writerow(record)
@@ -180,10 +167,9 @@ class OpenGovScraper:
         except:
             raise Exception("Error writing to csv file")
 
-    def generate_report(self, url, token, dataset, payload):
-        csv_file_path = dataset.lower().replace(" ", "_") + ".csv"
-        response_data = self.request_data(url, token, payload)
-        headers = self.create_csv(response_data, csv_file_path)
+    def generate_report(self, url, payload, path):
+        response_data = self.request_data(url, payload)
+        headers = self.create_csv(response_data, path)
 
         headers_dict = [{"name": header, "type": "VARCHAR"} for header in headers]
 

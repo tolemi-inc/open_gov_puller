@@ -4,17 +4,30 @@ from config_error import ConfigError
 class Config:
     def __init__(
         self,
+        data_file_path,
         category,
         dataset,
         citystate,
         open_gov_username,
         open_gov_password,
     ):
+        self.data_file_path = data_file_path
         self.category = category
         self.dataset = dataset
         self.citystate = citystate
         self.open_gov_username = open_gov_username
         self.open_gov_password = open_gov_password
+
+    @ property
+    def data_file_path(self):
+        return self._data_file_path
+
+    @ data_file_path.setter
+    def data_file_path(self, value):
+        if value is None:
+            raise ConfigError("Missing data file path in config.")
+        else:
+            self._data_file_path = value
 
     @property
     def category(self):
