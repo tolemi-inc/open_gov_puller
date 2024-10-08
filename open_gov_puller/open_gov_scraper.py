@@ -22,10 +22,16 @@ class OpenGovScraper:
         self.page.goto(url)
         logging.info(f"Navigating to {url}")
 
-    def login(self):
-        # self.retry_wait_for_selector("input[name='email']")
+        # logging.info("Printing page contents")
+        # print(self.page.content())
+
+    def login(self, url):
         logging.info("Looking for email element")
-        self.page.wait_for_selector("input[name='email']", timeout=100000)
+        try:
+            self.retry_wait_for_selector(url, "input[name='email']")
+            # self.page.wait_for_selector("input[name='email']", timeout=100000)
+        except:
+            print(self.page.content())
         logging.info("Found email element")
         self.page.locator("input[name='email']").fill(self.username)
         self.page.locator("input[name='password']").fill(self.password)
@@ -45,10 +51,12 @@ class OpenGovScraper:
             else:
                 raise Exception("Error logging in")
             
-    def retry_wait_for_selector(self, selector, timeout=100000, retries=3):
+    def retry_wait_for_selector(self, url, selector, timeout=50000, retries=3):
         attempt = 0
         while attempt < retries:
             try:
+                self.page.goto(url)
+                logging.info(f"Navigating to {url}")
                 return self.page.wait_for_selector(selector, timeout=timeout)
             except:
                 logging.warning(f"Retrying to find {selector} - Attempt {attempt + 1}")
@@ -128,6 +136,8 @@ class OpenGovScraper:
             None,
         )
         
+        # print(matching_report["columns"])
+
         payload = {}
         if matching_report:
             payload["categoryID"] = category_id
@@ -154,9 +164,9 @@ class OpenGovScraper:
 
     def create_csv(self, data, path):
         try:
-            with open(f"open_gov_puller/{path}", "w", newline="") as csvfile:
+            with open(path, "w", newline="") as csvfile:
                 fieldnames = data[0].keys()
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 
                 for record in data:
                     writer.writerow(record)

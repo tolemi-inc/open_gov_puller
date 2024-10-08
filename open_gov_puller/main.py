@@ -24,7 +24,7 @@ def run(config):
     openGovScraper = OpenGovScraper(config.open_gov_username, config.open_gov_password, config.citystate)
 
     openGovScraper.open_opengov(url)
-    openGovScraper.login()
+    openGovScraper.login(url)
     openGovScraper.quit_driver()
 
     category_id = openGovScraper.get_category_id(
