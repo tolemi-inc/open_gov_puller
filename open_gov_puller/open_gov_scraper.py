@@ -22,14 +22,10 @@ class OpenGovScraper:
         self.page.goto(url)
         logging.info(f"Navigating to {url}")
 
-        # logging.info("Printing page contents")
-        # print(self.page.content())
-
     def login(self, url):
         logging.info("Looking for email element")
         try:
             self.retry_wait_for_selector(url, "input[name='email']")
-            # self.page.wait_for_selector("input[name='email']", timeout=100000)
         except:
             print(self.page.content())
         logging.info("Found email element")
@@ -131,13 +127,10 @@ class OpenGovScraper:
                 report
                 for report in response.json()["reports"]
                 if report["name"] == report_name
-                # and report["createdByUserID"] == "auth0|652009d2a02a8ba6ec8cd878"
             ),
             None,
         )
         
-        # print(matching_report["columns"])
-
         payload = {}
         if matching_report:
             payload["categoryID"] = category_id

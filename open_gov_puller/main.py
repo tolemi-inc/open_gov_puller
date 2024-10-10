@@ -19,6 +19,8 @@ logging.basicConfig(
 )
 
 def run(config):
+    logging.info("Running Python Script")
+
     url = f"https://{config.citystate}.workflow.opengov.com"
 
     openGovScraper = OpenGovScraper(config.open_gov_username, config.open_gov_password, config.citystate)
