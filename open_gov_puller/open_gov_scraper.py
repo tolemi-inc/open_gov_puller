@@ -173,12 +173,27 @@ class OpenGovScraper:
 
     def request_data(self, url, payload):
         headers = {"authorization": f"Bearer {self.api_token}", "content-type": "application/vnd.api+json"}
-        response = self.make_api_call("POST", url, headers, payload)
-        logging.info(
-            f"Successfully retrieved data for report with id {payload['recordTypeID']} from OpenGov"
-        )
+        more_data = True
+        page_number = 0
+        page_size = 10000
+        full_data = []
 
-        return response.json()["data"]
+        while more_data:
+            payload["pageNumber"] = page_number
+            payload["fetchNumber"] = page_size
+            response = self.make_api_call("POST", url, headers, payload)
+
+            response_data = response.json().get("data", [])
+            full_data.extend(response_data)
+            logging.info(f"Retrieved {len(response_data)} records from page {page_number}")
+            
+            if len(response_data) < page_size:
+                more_data = False
+
+            page_number += 1
+
+        logging.info(f"Successfully retrieved data for report with id {payload['recordTypeID']} from OpenGov")
+        return full_data
 
     def create_csv(self, data, path):
         try:
