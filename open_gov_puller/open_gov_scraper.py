@@ -112,8 +112,8 @@ class OpenGovScraper:
         )
 
         return category_id
-
-    def get_report_payload(self, url, category_id, report_name):
+    
+    def get_report_metadata(self, url, category_id, report_name):
         full_url = f"{url}/reports?categoryID={category_id}"
         headers = {"authorization": f"Bearer {self.api_token}", "subdomain": self.city_state}
 
@@ -130,21 +130,46 @@ class OpenGovScraper:
             ),
             None,
         )
-        
+
+        return matching_report
+
+    def generate_report_payload(self, report_metadata, category_id, report_name):
         payload = {}
-        if matching_report:
+        if report_metadata:
             payload["categoryID"] = category_id
-            payload["recordTypeID"] = matching_report["recordTypeID"]
+            payload["recordTypeID"] = report_metadata["recordTypeID"]
             payload["filters"] = "[]"
-            payload["columns"] = matching_report["columns"]
-            payload["reportType"] = matching_report["reportScopeID"]
+            payload["columns"] = report_metadata["columns"]
+            payload["reportType"] = report_metadata["reportScopeID"]
             payload["pageNumber"] = 0
-            payload["fetchNumber"] = 50
+            payload["fetchNumber"] = 500000
             logging.info(f"Successfully found report metadata for report named {report_name}")
         else:
             logging.info(f"No report named {report_name} found")
 
         return payload
+    
+    def create_column_name_mapping(self, columns):
+        updated_column_names = {}
+        for col in columns:
+            if 't' in col and 'c' in col:
+                updated_column_names[f"{col['t']}{col['c']}"] = col['n'].replace(' ', '_')
+            if 'ffID' in col:
+                updated_column_names[str(col['ffID'])] = col['n'].replace(' ', '_')
+        return updated_column_names
+    
+    def update_column_names(self, data, report_metadata):
+        column_names = self.create_column_name_mapping(json.loads(report_metadata["columns"]))
+        renamed_data = []
+        for record in data:
+            new_record = {}
+            for key, value in record.items():
+                # Use the mapping to rename the keys
+                new_key = column_names.get(key, key)  # Default to the original key if no mapping found
+                new_record[new_key] = value
+            renamed_data.append(new_record)
+
+        return renamed_data
 
     def request_data(self, url, payload):
         headers = {"authorization": f"Bearer {self.api_token}", "content-type": "application/vnd.api+json"}
@@ -170,9 +195,10 @@ class OpenGovScraper:
         except:
             raise Exception("Error writing to csv file")
 
-    def generate_report(self, url, payload, path):
+    def generate_report(self, url, payload, report_metadata, path):
         response_data = self.request_data(url, payload)
-        headers = self.create_csv(response_data, path)
+        updated_response_data = self.update_column_names(response_data, report_metadata)
+        headers = self.create_csv(updated_response_data, path)
 
         headers_dict = [{"name": header, "type": "VARCHAR"} for header in headers]
 

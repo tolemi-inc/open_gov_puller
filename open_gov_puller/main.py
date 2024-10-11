@@ -34,8 +34,10 @@ def run(config):
         config.category,
     )
 
-    report_payload = openGovScraper.get_report_payload(
-        url,
+    report_metadata = openGovScraper.get_report_metadata(url, category_id, config.dataset)
+
+    report_payload = openGovScraper.generate_report_payload(
+        report_metadata,
         category_id,
         config.dataset,
     )
@@ -43,6 +45,7 @@ def run(config):
     headers_dict = openGovScraper.generate_report(
         f"https://api-east.viewpointcloud.com/v2/{config.citystate}/reports/explore",
         report_payload,
+        report_metadata,
         config.data_file_path
     )
 
