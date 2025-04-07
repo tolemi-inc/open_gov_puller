@@ -2,3 +2,4 @@ config.json
 *.csv
 __pycache__
 /myenv
+.tool-versions
