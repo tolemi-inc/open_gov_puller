@@ -126,7 +126,7 @@ class OpenGovScraper:
             (
                 report
                 for report in response.json()["reports"]
-                if report["name"] == report_name
+                if report["name"] == report_name and report["categoryID"] == category_id
             ),
             None,
         )
