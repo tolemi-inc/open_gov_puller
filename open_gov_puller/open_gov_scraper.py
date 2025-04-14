@@ -138,7 +138,7 @@ class OpenGovScraper:
         if report_metadata:
             payload["categoryID"] = category_id
             payload["recordTypeID"] = report_metadata["recordTypeID"]
-            payload["filters"] = report_metadata["filters"]
+            payload["filters"] = report_metadata["filters"] or "[]"
             payload["columns"] = report_metadata["columns"]
             payload["reportType"] = report_metadata["reportScopeID"]
             payload["pageNumber"] = 0
