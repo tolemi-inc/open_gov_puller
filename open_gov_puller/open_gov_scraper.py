@@ -211,8 +211,6 @@ class OpenGovScraper:
                 fieldnames = data[0].keys()
                 writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 
-                writer.writeheader()
-
                 for record in data:
                     writer.writerow(record)
 
