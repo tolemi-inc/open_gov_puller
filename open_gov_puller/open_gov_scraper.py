@@ -13,7 +13,7 @@ class OpenGovScraper:
         self.api_token = None
 
         self.playwright = sync_playwright().start()
-        self.browser = self.playwright.chromium.launch(headless=False,
+        self.browser = self.playwright.chromium.launch(headless=True,
             args=['--no-zygote'])
         self.page = self.browser.new_page()
     
@@ -39,7 +39,7 @@ class OpenGovScraper:
         self.page.locator("input[name='password']").fill(self.password)
         self.page.locator("xpath=//button[@type='submit']").click()
         logging.info("Logging in")
-        
+
         try:
             inbox = self.page.wait_for_selector('#openGovLogo', timeout=100000)
             if inbox:
