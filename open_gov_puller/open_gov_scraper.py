@@ -13,7 +13,7 @@ class OpenGovScraper:
         self.api_token = None
 
         self.playwright = sync_playwright().start()
-        self.browser = self.playwright.chromium.launch(headless=True,
+        self.browser = self.playwright.chromium.launch(headless=False,
             args=['--no-zygote'])
         self.page = self.browser.new_page()
     
@@ -23,16 +23,23 @@ class OpenGovScraper:
         logging.info(f"Navigating to {url}")
 
     def login(self, url):
-        logging.info("Looking for email element")
+
+        logging.info("Looking for log in with OpenGov element")
         try:
-            self.retry_wait_for_selector(url, "input[name='email']")
+            self.retry_wait_for_selector(url, ".auth0-lock-social-button-text")
+            logging.info("Found log in with OpenGov element")
         except:
             print(self.page.content())
-        logging.info("Found email element")
+    
+        logging.info("Logging in with OpenGov")
+        self.page.locator(".auth0-lock-social-button-text").click()
+
         self.page.locator("input[name='email']").fill(self.username)
+        self.page.locator("xpath=//button[@type='submit']").click()
         self.page.locator("input[name='password']").fill(self.password)
         self.page.locator("xpath=//button[@type='submit']").click()
         logging.info("Logging in")
+        
         try:
             inbox = self.page.wait_for_selector('#openGovLogo', timeout=100000)
             if inbox:
@@ -114,7 +121,8 @@ class OpenGovScraper:
         return category_id
     
     def get_report_metadata(self, url, category_id, report_name):
-        full_url = f"{url}/reports?categoryID={category_id}"
+        # full_url = f"{url}/reports?categoryID={category_id}"
+        full_url = f"https://employee-east.viewpointcloud.io/reports?categoryID={category_id}"
         headers = {"authorization": f"Bearer {self.api_token}", "subdomain": self.city_state}
 
         response = self.make_api_call("GET", full_url, headers)
@@ -130,6 +138,8 @@ class OpenGovScraper:
             ),
             None,
         )
+
+        print(matching_report)
 
         return matching_report
 
@@ -201,6 +211,8 @@ class OpenGovScraper:
                 fieldnames = data[0].keys()
                 writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 
+                writer.writeheader()
+
                 for record in data:
                     writer.writerow(record)
 
@@ -212,6 +224,8 @@ class OpenGovScraper:
 
     def generate_report(self, url, payload, report_metadata, path):
         response_data = self.request_data(url, payload)
+        print(url)
+        print(payload)
         updated_response_data = self.update_column_names(response_data, report_metadata)
         headers = self.create_csv(updated_response_data, path)
 
