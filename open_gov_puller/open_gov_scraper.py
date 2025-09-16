@@ -28,11 +28,16 @@ class OpenGovScraper:
         try:
             self.retry_wait_for_selector(url, ".auth0-lock-social-button-text")
             logging.info("Found log in with OpenGov element")
+
+            logging.info("Logging in with OpenGov")
+            self.page.locator(".auth0-lock-social-button-text").click()
         except:
-            print(self.page.content())
-    
-        logging.info("Logging in with OpenGov")
-        self.page.locator(".auth0-lock-social-button-text").click()
+            try:
+                logging.info("Could not find log in with OpenGov element. Looking for email input element.")
+                self.retry_wait_for_selector(url, "input[name='email']")
+                logging.info("Found email input element element")
+            except:
+                print(self.page.content())
 
         self.page.locator("input[name='email']").fill(self.username)
         self.page.locator("xpath=//button[@type='submit']").click()
